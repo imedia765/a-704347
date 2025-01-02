@@ -12,11 +12,13 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useToast } from "@/components/ui/use-toast";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [searchTerm, setSearchTerm] = useState('');
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   useEffect(() => {
     checkAuth();
@@ -29,7 +31,7 @@ const Index = () => {
     }
   };
 
-  const { data: profile } = useQuery({
+  const { data: profile, isError } = useQuery({
     queryKey: ['profile'],
     queryFn: async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -39,9 +41,25 @@ const Index = () => {
         .from('profiles')
         .select('*')
         .eq('auth_user_id', session.user.id)
-        .single();
+        .maybeSingle();
 
-      if (error) throw error;
+      if (error) {
+        toast({
+          variant: "destructive",
+          title: "Error fetching profile",
+          description: error.message
+        });
+        throw error;
+      }
+      
+      if (!data) {
+        toast({
+          variant: "destructive",
+          title: "Profile not found",
+          description: "Please contact an administrator to set up your profile."
+        });
+      }
+      
       return data;
     },
   });
@@ -78,29 +96,42 @@ const Index = () => {
             </header>
             
             <div className="grid gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Profile Information</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center space-x-4">
-                    <Avatar>
-                      <AvatarFallback>
-                        {profile?.full_name?.charAt(0) || '?'}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="space-y-1">
-                      <h3 className="text-xl font-medium">{profile?.full_name}</h3>
-                      <div className="text-sm text-muted-foreground">
-                        <p>Member Number: {profile?.member_number}</p>
-                        <p>Email: {profile?.email}</p>
-                        <p>Phone: {profile?.phone || 'Not provided'}</p>
-                        <p>Membership Type: {profile?.membership_type || 'Standard'}</p>
+              {!profile ? (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Profile Not Found</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-muted-foreground">
+                      Your profile has not been set up yet. Please contact an administrator.
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Profile Information</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center space-x-4">
+                      <Avatar>
+                        <AvatarFallback>
+                          {profile?.full_name?.charAt(0) || '?'}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="space-y-1">
+                        <h3 className="text-xl font-medium">{profile?.full_name}</h3>
+                        <div className="text-sm text-muted-foreground">
+                          <p>Member Number: {profile?.member_number}</p>
+                          <p>Email: {profile?.email}</p>
+                          <p>Phone: {profile?.phone || 'Not provided'}</p>
+                          <p>Membership Type: {profile?.membership_type || 'Standard'}</p>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           </>
         );
