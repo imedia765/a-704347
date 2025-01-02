@@ -6,12 +6,31 @@ import MembersList from '@/components/MembersList';
 import SidePanel from '@/components/SidePanel';
 import TotalCount from '@/components/TotalCount';
 import { Users } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Switch } from "@/components/ui/switch";
+import { useNavigate } from 'react-router-dom';
+import { Button } from "@/components/ui/button";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState('users');
   const [searchTerm, setSearchTerm] = useState('');
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    checkAuth();
+  }, []);
+
+  const checkAuth = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      navigate('/login');
+    }
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate('/login');
+  };
 
   const { data: membersData } = useQuery({
     queryKey: ['members_count'],
@@ -29,9 +48,14 @@ const Index = () => {
       case 'users':
         return (
           <>
-            <header className="mb-8">
-              <h1 className="text-3xl font-medium mb-2">Members</h1>
-              <p className="text-dashboard-muted">View and manage member information</p>
+            <header className="mb-8 flex justify-between items-center">
+              <div>
+                <h1 className="text-3xl font-medium mb-2">Members</h1>
+                <p className="text-dashboard-muted">View and manage member information</p>
+              </div>
+              <Button onClick={handleLogout} variant="outline">
+                Logout
+              </Button>
             </header>
             <TotalCount 
               items={[{
