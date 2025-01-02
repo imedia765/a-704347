@@ -7,6 +7,7 @@ import SidePanel from '@/components/SidePanel';
 import TotalCount from '@/components/TotalCount';
 import { Users } from 'lucide-react';
 import { useState } from 'react';
+import { Switch } from "@/components/ui/switch";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState('users');
