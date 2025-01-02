@@ -10,9 +10,11 @@ import { useState, useEffect } from 'react';
 import { Switch } from "@/components/ui/switch";
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 const Index = () => {
-  const [activeTab, setActiveTab] = useState('users');
+  const [activeTab, setActiveTab] = useState('dashboard');
   const [searchTerm, setSearchTerm] = useState('');
   const navigate = useNavigate();
 
@@ -26,6 +28,23 @@ const Index = () => {
       navigate('/login');
     }
   };
+
+  const { data: profile } = useQuery({
+    queryKey: ['profile'],
+    queryFn: async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) throw new Error('No user logged in');
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('auth_user_id', session.user.id)
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+  });
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -45,6 +64,46 @@ const Index = () => {
 
   const renderContent = () => {
     switch (activeTab) {
+      case 'dashboard':
+        return (
+          <>
+            <header className="mb-8 flex justify-between items-center">
+              <div>
+                <h1 className="text-3xl font-medium mb-2">Dashboard</h1>
+                <p className="text-dashboard-muted">Welcome back!</p>
+              </div>
+              <Button onClick={handleLogout} variant="outline">
+                Logout
+              </Button>
+            </header>
+            
+            <div className="grid gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Profile Information</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center space-x-4">
+                    <Avatar>
+                      <AvatarFallback>
+                        {profile?.full_name?.charAt(0) || '?'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="space-y-1">
+                      <h3 className="text-xl font-medium">{profile?.full_name}</h3>
+                      <div className="text-sm text-muted-foreground">
+                        <p>Member Number: {profile?.member_number}</p>
+                        <p>Email: {profile?.email}</p>
+                        <p>Phone: {profile?.phone || 'Not provided'}</p>
+                        <p>Membership Type: {profile?.membership_type || 'Standard'}</p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </>
+        );
       case 'users':
         return (
           <>
