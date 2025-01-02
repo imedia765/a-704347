@@ -31,14 +31,15 @@ const Index = () => {
     }
   };
 
-  const { data: profile, isError } = useQuery({
-    queryKey: ['profile'],
+  const { data: memberProfile, isError } = useQuery({
+    queryKey: ['memberProfile'],
     queryFn: async () => {
+      console.log('Fetching member profile...');
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) throw new Error('No user logged in');
 
       const { data, error } = await supabase
-        .from('profiles')
+        .from('members')
         .select('*')
         .eq('auth_user_id', session.user.id)
         .maybeSingle();
@@ -46,7 +47,7 @@ const Index = () => {
       if (error) {
         toast({
           variant: "destructive",
-          title: "Error fetching profile",
+          title: "Error fetching member profile",
           description: error.message
         });
         throw error;
@@ -87,45 +88,52 @@ const Index = () => {
           <>
             <header className="mb-8 flex justify-between items-center">
               <div>
-                <h1 className="text-3xl font-medium mb-2">Dashboard</h1>
-                <p className="text-dashboard-muted">Welcome back!</p>
+                <h1 className="text-3xl font-medium mb-2 text-white">Dashboard</h1>
+                <p className="text-gray-400">Welcome back!</p>
               </div>
-              <Button onClick={handleLogout} variant="outline">
+              <Button onClick={handleLogout} variant="outline" className="border-white/10 hover:bg-white/5">
                 Logout
               </Button>
             </header>
             
             <div className="grid gap-6">
-              {!profile ? (
-                <Card>
+              {!memberProfile ? (
+                <Card className="bg-dashboard-card border-white/10">
                   <CardHeader>
-                    <CardTitle>Profile Not Found</CardTitle>
+                    <CardTitle className="text-white">Profile Not Found</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-muted-foreground">
+                    <p className="text-gray-400">
                       Your profile has not been set up yet. Please contact an administrator.
                     </p>
                   </CardContent>
                 </Card>
               ) : (
-                <Card>
+                <Card className="bg-dashboard-card border-white/10">
                   <CardHeader>
-                    <CardTitle>Profile Information</CardTitle>
+                    <CardTitle className="text-white">Member Profile</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="flex items-center space-x-4">
-                      <Avatar>
-                        <AvatarFallback>
-                          {profile?.full_name?.charAt(0) || '?'}
+                      <Avatar className="h-16 w-16 border-2 border-white/10">
+                        <AvatarFallback className="bg-dashboard-accent1 text-lg">
+                          {memberProfile?.full_name?.charAt(0) || '?'}
                         </AvatarFallback>
                       </Avatar>
                       <div className="space-y-1">
-                        <h3 className="text-xl font-medium">{profile?.full_name}</h3>
-                        <div className="text-sm text-muted-foreground">
-                          <p>Member Number: {profile?.member_number}</p>
-                          <p>Email: {profile?.email}</p>
-                          <p>Phone: {profile?.phone || 'Not provided'}</p>
-                          <p>Membership Type: {profile?.membership_type || 'Standard'}</p>
+                        <h3 className="text-xl font-medium text-white">{memberProfile?.full_name}</h3>
+                        <div className="text-sm space-y-1">
+                          <p className="text-gray-400">Member #{memberProfile?.member_number}</p>
+                          <p className="text-gray-400">Email: {memberProfile?.email || 'Not provided'}</p>
+                          <p className="text-gray-400">Phone: {memberProfile?.phone || 'Not provided'}</p>
+                          <p className="text-gray-400">Status: <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            memberProfile?.status === 'active' 
+                              ? 'bg-green-500/20 text-green-500' 
+                              : 'bg-gray-500/20 text-gray-400'
+                          }`}>
+                            {memberProfile?.status || 'Pending'}
+                          </span></p>
+                          <p className="text-gray-400">Membership Type: {memberProfile?.membership_type || 'Standard'}</p>
                         </div>
                       </div>
                     </div>
@@ -187,7 +195,7 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-dashboard-background">
       <SidePanel onTabChange={setActiveTab} />
       <div className="pl-64">
         <div className="p-8">
