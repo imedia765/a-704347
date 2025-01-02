@@ -1,13 +1,32 @@
-import { ShoppingCart, Smartphone, Box, UserPlus, Key, Bell, Globe, Shield, Moon } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from "@/integrations/supabase/client";
+import { Tables } from '@/integrations/supabase/types';
 import MetricCard from '@/components/MetricCard';
 import MonthlyChart from '@/components/MonthlyChart';
 import CustomerRequests from '@/components/CustomerRequests';
+import CollectorsList from '@/components/CollectorsList';
 import SidePanel from '@/components/SidePanel';
+import TotalCount from '@/components/TotalCount';
+import MemberSearch from '@/components/MemberSearch';
+import MembersList from '@/components/MembersList';
 import { useState } from 'react';
 import { Switch } from "@/components/ui/switch";
+import { Bell, Globe, Users, UserCheck } from 'lucide-react';
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const { data: membersData } = useQuery({
+    queryKey: ['members_count'],
+    queryFn: async () => {
+      const { count } = await supabase
+        .from('members')
+        .select('*', { count: 'exact', head: true });
+      
+      return { totalCount: count || 0 };
+    },
+  });
 
   const renderContent = () => {
     switch (activeTab) {
@@ -47,67 +66,31 @@ const Index = () => {
         return (
           <>
             <header className="mb-8">
-              <h1 className="text-3xl font-medium mb-2">Users</h1>
-              <p className="text-dashboard-muted">Manage your users and their permissions</p>
+              <h1 className="text-3xl font-medium mb-2">Members</h1>
+              <p className="text-dashboard-muted">View and manage member information</p>
             </header>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="dashboard-card">
-                <div className="flex items-center gap-3 mb-4">
-                  <UserPlus className="w-5 h-5 text-blue-400" />
-                  <h2 className="text-xl font-medium">Active Users</h2>
-                </div>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between p-3 glass-card">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center">JD</div>
-                      <div>
-                        <p className="font-medium">John Doe</p>
-                        <p className="text-sm text-gray-400">Administrator</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Key className="w-4 h-4 text-green-400" />
-                      <span className="text-sm text-green-400">Active</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between p-3 glass-card">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-purple-500 flex items-center justify-center">AS</div>
-                      <div>
-                        <p className="font-medium">Alice Smith</p>
-                        <p className="text-sm text-gray-400">Editor</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Key className="w-4 h-4 text-green-400" />
-                      <span className="text-sm text-green-400">Active</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="dashboard-card">
-                <div className="flex items-center gap-3 mb-4">
-                  <Shield className="w-5 h-5 text-purple-400" />
-                  <h2 className="text-xl font-medium">Permissions</h2>
-                </div>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between p-3 glass-card">
-                    <div>
-                      <p className="font-medium">Admin Access</p>
-                      <p className="text-sm text-gray-400">Full system access</p>
-                    </div>
-                    <Switch />
-                  </div>
-                  <div className="flex items-center justify-between p-3 glass-card">
-                    <div>
-                      <p className="font-medium">Editor Access</p>
-                      <p className="text-sm text-gray-400">Content management</p>
-                    </div>
-                    <Switch />
-                  </div>
-                </div>
-              </div>
-            </div>
+            <TotalCount 
+              items={[{
+                count: membersData?.totalCount || 0,
+                label: "Total Members",
+                icon: <Users className="w-6 h-6 text-blue-400" />
+              }]}
+            />
+            <MemberSearch 
+              searchTerm={searchTerm}
+              onSearchChange={setSearchTerm}
+            />
+            <MembersList searchTerm={searchTerm} />
+          </>
+        );
+      case 'collectors':
+        return (
+          <>
+            <header className="mb-8">
+              <h1 className="text-3xl font-medium mb-2">Collectors</h1>
+              <p className="text-dashboard-muted">View all collectors and their assigned members</p>
+            </header>
+            <CollectorsList />
           </>
         );
       case 'settings':
@@ -151,7 +134,7 @@ const Index = () => {
                       <p className="font-medium">Language</p>
                       <p className="text-sm text-gray-400">Select your language</p>
                     </div>
-                    <select className="bg-transparent border border-white/10 rounded-md px-2 py-1">
+                    <select className="bg-transparent border rounded-md px-2 py-1">
                       <option value="en">English</option>
                       <option value="es">Spanish</option>
                       <option value="fr">French</option>
