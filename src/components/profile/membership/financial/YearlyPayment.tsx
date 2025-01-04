@@ -9,6 +9,9 @@ interface YearlyPaymentProps {
 }
 
 const YearlyPayment = ({ memberProfile }: YearlyPaymentProps) => {
+  // Set default yearly payment amount to £40
+  const yearlyAmount = memberProfile?.yearly_payment_amount || 40;
+
   return (
     <div className="space-y-2 bg-white/5 p-6 rounded-lg border border-white/10 hover:border-dashboard-accent1/30 transition-all duration-300">
       <h4 className="font-medium text-dashboard-accent2 flex items-center gap-2 mb-4 text-lg">
@@ -20,7 +23,7 @@ const YearlyPayment = ({ memberProfile }: YearlyPaymentProps) => {
         <div className="flex items-center justify-between">
           <span className="text-dashboard-muted">Amount:</span>
           <span className="text-dashboard-text font-medium text-lg">
-            {formatCurrency(memberProfile?.yearly_payment_amount || null)}
+            {formatCurrency(yearlyAmount)}
           </span>
         </div>
         
