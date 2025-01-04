@@ -31,7 +31,8 @@ const MemberProfileCard = ({ memberProfile }: MemberProfileCardProps) => {
   return (
     <Card className="bg-dashboard-card border-white/10 shadow-lg hover:border-dashboard-accent1/50 transition-all duration-300">
       <ProfileHeader />
-      <CardContent className="pt-6">
+      <CardContent className="space-y-12">
+        {/* Member Information Section */}
         <div className="flex flex-col md:flex-row md:items-start gap-6">
           <ProfileAvatar memberProfile={memberProfile} />
           
@@ -47,10 +48,14 @@ const MemberProfileCard = ({ memberProfile }: MemberProfileCardProps) => {
                   memberProfile={memberProfile}
                   userRole={userRole}
                 />
-                <FinancialDetails memberProfile={memberProfile} />
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Financial Details Section - Full Width */}
+        <div className="pt-6 border-t border-white/10">
+          <FinancialDetails memberProfile={memberProfile} />
         </div>
       </CardContent>
     </Card>
