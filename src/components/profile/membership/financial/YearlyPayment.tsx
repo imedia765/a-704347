@@ -11,6 +11,7 @@ interface YearlyPaymentProps {
 const YearlyPayment = ({ memberProfile }: YearlyPaymentProps) => {
   // Set default yearly payment amount to £40
   const yearlyAmount = memberProfile?.yearly_payment_amount || 40;
+  const defaultDueDate = '2025-01-01'; // Set to January 1st, 2025
 
   return (
     <div className="space-y-2 bg-white/5 p-6 rounded-lg border border-white/10 hover:border-dashboard-accent1/30 transition-all duration-300">
@@ -30,7 +31,7 @@ const YearlyPayment = ({ memberProfile }: YearlyPaymentProps) => {
         <div className="flex items-center justify-between">
           <span className="text-dashboard-muted">Due Date:</span>
           <span className="text-dashboard-text text-lg">
-            {memberProfile?.yearly_payment_due_date || 'January 28th, 2025'}
+            {memberProfile?.yearly_payment_due_date || 'January 1st, 2025'}
           </span>
         </div>
         
@@ -40,7 +41,7 @@ const YearlyPayment = ({ memberProfile }: YearlyPaymentProps) => {
             "px-3 py-1.5 rounded-full text-sm font-medium",
             memberProfile?.yearly_payment_status === 'paid'
               ? "bg-dashboard-accent3/20 text-dashboard-accent3"
-              : isOverdue(memberProfile?.yearly_payment_due_date || null)
+              : isOverdue(memberProfile?.yearly_payment_due_date || defaultDueDate)
                 ? "bg-red-500/20 text-red-500"
                 : "bg-dashboard-warning/20 text-dashboard-warning"
           )}>
