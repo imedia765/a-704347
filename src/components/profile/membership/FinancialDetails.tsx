@@ -3,6 +3,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Member } from "@/types/member";
 import { formatCurrency } from "@/lib/formatters";
 import { isOverdue } from "@/lib/dateUtils";
+import { cn } from "@/lib/utils";
 import RegularPayment from "./financial/RegularPayment";
 import YearlyPayment from "./financial/YearlyPayment";
 import PaymentTimeline from "./financial/PaymentTimeline";
