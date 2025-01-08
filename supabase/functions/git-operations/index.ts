@@ -9,7 +9,6 @@ const corsHeaders = {
 interface GitOperationRequest {
   branch?: string;
   commitMessage?: string;
-  token: string;
 }
 
 serve(async (req) => {
@@ -36,11 +35,13 @@ serve(async (req) => {
       throw new Error('Invalid token')
     }
 
-    const { token, branch = 'main', commitMessage = 'Force commit: Pushing all files to master' } = await req.json() as GitOperationRequest
-
-    if (!token) {
-      throw new Error('GitHub token is required')
+    // Get GitHub token from secrets
+    const githubToken = Deno.env.get('GITHUB_PAT')
+    if (!githubToken) {
+      throw new Error('GitHub token not configured')
     }
+
+    const { branch = 'main', commitMessage = 'Force commit: Pushing all files to master' } = await req.json() as GitOperationRequest
 
     // Log operation start
     const { data: logEntry, error: logError } = await supabaseClient
@@ -63,10 +64,12 @@ serve(async (req) => {
     const repoName = 's-935078'
     const apiUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/git/refs/heads/${branch}`
 
+    console.log('Fetching current branch state...')
+    
     // Get the latest commit SHA
     const response = await fetch(apiUrl, {
       headers: {
-        'Authorization': `token ${token}`,
+        'Authorization': `token ${githubToken}`,
         'Accept': 'application/vnd.github.v3+json'
       }
     })
@@ -100,6 +103,18 @@ serve(async (req) => {
     )
   } catch (error) {
     console.error('Error:', error)
+
+    // Log the error
+    if (error instanceof Error) {
+      await supabaseClient
+        .from('git_operations_logs')
+        .insert({
+          operation_type: 'push',
+          status: 'failed',
+          message: error.message
+        })
+    }
+
     return new Response(
       JSON.stringify({
         success: false,
