@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from '@tanstack/react-query';
 
-export const useAuthSession = () => {
+export function useAuthSession() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
@@ -87,4 +87,4 @@ export const useAuthSession = () => {
   }, [queryClient, toast]);
 
   return { session, loading, handleSignOut };
-};
+}
