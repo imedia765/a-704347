@@ -2,7 +2,7 @@ import { Member } from "@/types/member";
 import RoleBadge from "./RoleBadge";
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from "@/integrations/supabase/client";
-import { CreditCard } from "lucide-react";
+import { CreditCard, Banknote } from "lucide-react";
 import { format } from "date-fns";
 
 interface MembershipDetailsProps {
@@ -108,27 +108,45 @@ const MembershipDetails = ({ memberProfile, userRole }: MembershipDetailsProps) 
         {/* Last Payment Status */}
         <div className="text-dashboard-text p-4 bg-dashboard-card rounded-lg border border-dashboard-cardBorder mt-4">
           <div className="flex items-center gap-2 mb-3">
-            <CreditCard className="w-5 h-5 text-dashboard-muted" />
-            <span className="text-dashboard-muted text-lg">Last Payment</span>
+            <CreditCard className="w-5 h-5 text-dashboard-accent1" />
+            <span className="text-white text-lg font-medium">Last Payment</span>
           </div>
           {lastPayment ? (
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
                 <span className={`px-4 py-1.5 rounded-full text-sm font-medium ${getPaymentStatusColor(lastPayment.status)}`}>
                   {lastPayment.status}
                 </span>
-                <span className="text-dashboard-accent2 text-lg font-medium">£{lastPayment.amount}</span>
+                <span className="text-dashboard-accent1 text-xl font-semibold">£{lastPayment.amount}</span>
               </div>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="text-dashboard-muted">Reference:</span>
-                  <span className="ml-2 text-dashboard-text">{lastPayment.payment_number || 'N/A'}</span>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <div>
+                    <span className="text-dashboard-muted">Reference:</span>
+                    <span className="ml-2 text-white font-medium">{lastPayment.payment_number || 'N/A'}</span>
+                  </div>
+                  <div>
+                    <span className="text-dashboard-muted">Date:</span>
+                    <span className="ml-2 text-white">
+                      {lastPayment.created_at ? format(new Date(lastPayment.created_at), 'dd MMM yyyy') : 'N/A'}
+                    </span>
+                  </div>
                 </div>
-                <div>
-                  <span className="text-dashboard-muted">Date:</span>
-                  <span className="ml-2 text-dashboard-text">
-                    {lastPayment.created_at ? format(new Date(lastPayment.created_at), 'dd MMM yyyy') : 'N/A'}
-                  </span>
+                <div className="flex items-start gap-2">
+                  <span className="text-dashboard-muted">Method:</span>
+                  <div className="flex items-center gap-2 text-white">
+                    {lastPayment.payment_method === 'cash' ? (
+                      <>
+                        <Banknote className="w-4 h-4 text-dashboard-accent3" />
+                        <span>Cash</span>
+                      </>
+                    ) : (
+                      <>
+                        <CreditCard className="w-4 h-4 text-dashboard-accent2" />
+                        <span>Bank Transfer</span>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
