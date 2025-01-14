@@ -3,6 +3,7 @@ import RoleBadge from "./RoleBadge";
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from "@/integrations/supabase/client";
 import { CreditCard } from "lucide-react";
+import { format } from "date-fns";
 
 interface MembershipDetailsProps {
   memberProfile: Member;
@@ -105,15 +106,31 @@ const MembershipDetails = ({ memberProfile, userRole }: MembershipDetailsProps) 
         </div>
         
         {/* Last Payment Status */}
-        <div className="text-dashboard-text flex items-center gap-2 mt-4">
-          <CreditCard className="w-4 h-4 text-dashboard-muted" />
-          <span className="text-dashboard-muted">Last Payment:</span>
+        <div className="text-dashboard-text p-4 bg-dashboard-card rounded-lg border border-dashboard-cardBorder mt-4">
+          <div className="flex items-center gap-2 mb-3">
+            <CreditCard className="w-5 h-5 text-dashboard-muted" />
+            <span className="text-dashboard-muted text-lg">Last Payment</span>
+          </div>
           {lastPayment ? (
-            <div className="flex items-center gap-2">
-              <span className={`px-3 py-1 rounded-full text-xs font-medium ${getPaymentStatusColor(lastPayment.status)}`}>
-                {lastPayment.status}
-              </span>
-              <span className="text-dashboard-accent2">£{lastPayment.amount}</span>
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <span className={`px-4 py-1.5 rounded-full text-sm font-medium ${getPaymentStatusColor(lastPayment.status)}`}>
+                  {lastPayment.status}
+                </span>
+                <span className="text-dashboard-accent2 text-lg font-medium">£{lastPayment.amount}</span>
+              </div>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-dashboard-muted">Reference:</span>
+                  <span className="ml-2 text-dashboard-text">{lastPayment.payment_number || 'N/A'}</span>
+                </div>
+                <div>
+                  <span className="text-dashboard-muted">Date:</span>
+                  <span className="ml-2 text-dashboard-text">
+                    {lastPayment.created_at ? format(new Date(lastPayment.created_at), 'dd MMM yyyy') : 'N/A'}
+                  </span>
+                </div>
+              </div>
             </div>
           ) : (
             <span className="text-dashboard-muted">No payments found</span>
