@@ -13,6 +13,7 @@ import { useRoleAccess } from "@/hooks/useRoleAccess";
 
 interface SidePanelProps {
   onTabChange: (tab: string) => void;
+  userRole?: string;
 }
 
 const SidePanel = ({ onTabChange }: SidePanelProps) => {

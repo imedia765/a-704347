@@ -5,4 +5,4 @@ export type BaseUserRole = 'admin' | 'collector' | 'member' | null;
 export type UserRole = BaseUserRole;
 export type UserRoles = BaseUserRole[];
 
-export { UserRole as default };
+export type { UserRole as default };

@@ -37,32 +37,33 @@ export const useEnhancedRoleAccess = () => {
     queryKey: ['userRoles'],
     queryFn: fetchUserRolesFromSupabase,
     retry: 1,
-    onSuccess: (data) => {
-      setUserRoles(data);
-      // Set primary role (admin > collector > member)
-      const primaryRole = data.includes('admin') 
-        ? 'admin' 
-        : data.includes('collector')
-          ? 'collector'
-          : data.includes('member')
-            ? 'member'
-            : null;
-      
-      setUserRole(primaryRole);
-      const permissions = mapRolesToPermissions(data);
-      setPermissions(permissions);
-      setIsLoading(false);
-      setError(null);
-    },
-    onError: (error: Error) => {
-      console.error('Error fetching roles:', error);
-      setError(error);
-      setIsLoading(false);
-      toast({
-        title: "Error fetching roles",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
+    meta: {
+      onSuccess: (data: UserRole[]) => {
+        setUserRoles(data);
+        const primaryRole = data.includes('admin') 
+          ? 'admin' 
+          : data.includes('collector')
+            ? 'collector'
+            : data.includes('member')
+              ? 'member'
+              : null;
+        
+        setUserRole(primaryRole);
+        const permissions = mapRolesToPermissions(data);
+        setPermissions(permissions);
+        setIsLoading(false);
+        setError(null);
+      },
+      onError: (error: Error) => {
+        console.error('Error fetching roles:', error);
+        setError(error);
+        setIsLoading(false);
+        toast({
+          title: "Error fetching roles",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
+    }
   });
 };

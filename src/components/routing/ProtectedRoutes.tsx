@@ -6,12 +6,12 @@ import { useToast } from "@/hooks/use-toast";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
 import { Loader2 } from "lucide-react";
 
-interface AuthWrapperProps {
+interface ProtectedRoutesProps {
   session: Session | null;
-  children: React.ReactNode;
 }
 
-const AuthWrapper = ({ session, children }: AuthWrapperProps) => {
+const ProtectedRoutes = ({ session }: ProtectedRoutesProps) => {
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
   const { roleLoading, hasRole } = useRoleAccess();
@@ -54,49 +54,14 @@ const AuthWrapper = ({ session, children }: AuthWrapperProps) => {
     return null;
   }
 
-  return <>{children}</>;
-};
-
-const ProtectedRoutes = ({ children }: { children: React.ReactNode }) => {
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    const initSession = async () => {
-      try {
-        const { data: { session: currentSession }, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error('Error getting session:', error);
-          navigate('/login', { replace: true });
-          return;
-        }
-        
-        setSession(currentSession);
-      } catch (error) {
-        console.error('Error initializing session:', error);
-        navigate('/login', { replace: true });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    initSession();
-  }, [navigate]);
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-dashboard-accent1" />
-      </div>
-    );
-  }
-
   return (
-    <AuthWrapper session={session}>
-      {children}
-    </AuthWrapper>
+    <div className="min-h-screen bg-dashboard-dark">
+      <div className="container mx-auto px-4">
+        <div className="py-8">
+          {/* Your protected content goes here */}
+        </div>
+      </div>
+    </div>
   );
 };
 
