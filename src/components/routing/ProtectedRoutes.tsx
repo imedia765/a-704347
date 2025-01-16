@@ -1,18 +1,17 @@
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
-import Index from "@/pages/Index";
-import Login from "@/pages/Login";
-import { Session } from "@supabase/supabase-js";
 import { useEffect } from "react";
-import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { Session } from "@supabase/supabase-js";
+import { useToast } from "@/hooks/use-toast";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
 import { Loader2 } from "lucide-react";
 
-interface ProtectedRoutesProps {
+interface AuthWrapperProps {
   session: Session | null;
+  children: React.ReactNode;
 }
 
-const AuthWrapper = ({ session }: { session: Session | null }) => {
+const AuthWrapper = ({ session, children }: AuthWrapperProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { roleLoading, canAccessTab, hasRole } = useRoleAccess();
@@ -25,85 +24,51 @@ const AuthWrapper = ({ session }: { session: Session | null }) => {
         console.log('User signed out or token refresh failed, redirecting to login');
         navigate('/login', { replace: true });
       } else if (event === 'SIGNED_IN' && currentSession) {
-        console.log('User signed in, redirecting to home');
-        navigate('/', { replace: true });
+        console.log('User signed in, checking role access');
+        if (!hasRole('member')) {
+          toast({
+            title: "Access Denied",
+            description: "You don't have permission to access this area.",
+            variant: "destructive",
+          });
+          navigate('/login', { replace: true });
+        }
       }
     });
 
     return () => {
       subscription.unsubscribe();
     };
-  }, [navigate]);
-
-  useEffect(() => {
-    const handleError = (event: ErrorEvent) => {
-      console.error('Navigation error:', event.error);
-      
-      if (event.error?.name === 'ChunkLoadError' || event.message?.includes('Failed to fetch')) {
-        toast({
-          title: "Navigation Error",
-          description: "There was a problem loading the page. Please try refreshing.",
-          variant: "destructive",
-        });
-      }
-    };
-
-    window.addEventListener('error', handleError);
-    return () => window.removeEventListener('error', handleError);
-  }, [toast]);
+  }, [navigate, hasRole]);
 
   if (roleLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-dashboard-dark">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-dashboard-accent1" />
       </div>
     );
   }
 
-  return (
-    <Routes>
-      <Route
-        path="/"
-        element={
-          session ? (
-            canAccessTab('dashboard') ? (
-              <Index />
-            ) : (
-              <div className="flex flex-col items-center justify-center min-h-screen bg-dashboard-dark text-white">
-                <h1 className="text-2xl font-semibold mb-4">Access Denied</h1>
-                <p className="text-dashboard-muted">You don't have permission to access this page.</p>
-              </div>
-            )
-          ) : (
-            <Navigate to="/login" replace />
-          )
-        }
-      />
-      <Route
-        path="/login"
-        element={
-          session ? (
-            <Navigate to="/" replace />
-          ) : (
-            <Login />
-          )
-        }
-      />
-      <Route
-        path="*"
-        element={
-          <Navigate to={session ? "/" : "/login"} replace />
-        }
-      />
-    </Routes>
-  );
+  if (!session) {
+    navigate('/login', { replace: true });
+    return null;
+  }
+
+  return <>{children}</>;
 };
 
-const ProtectedRoutes = ({ session }: ProtectedRoutesProps) => {
+const ProtectedRoutes = ({ children }: { children: React.ReactNode }) => {
+  const { data: { session }, error } = supabase.auth.getSession();
+
+  if (error) {
+    console.error('Error getting session:', error);
+    return null;
+  }
+
   return (
-    <BrowserRouter basename="/">
-      <AuthWrapper session={session} />
-    </BrowserRouter>
+    <AuthWrapper session={session}>
+      {children}
+    </AuthWrapper>
   );
 };
 
