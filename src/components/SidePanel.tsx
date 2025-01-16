@@ -8,21 +8,28 @@ import {
   Wallet,
   LogOut
 } from "lucide-react";
-import { UserRole } from "@/hooks/useRoleAccess";
 import { useAuthSession } from "@/hooks/useAuthSession";
+import { useRoleAccess } from "@/hooks/useRoleAccess";
 
 interface SidePanelProps {
   onTabChange: (tab: string) => void;
-  userRole: UserRole;
 }
 
-const SidePanel = ({ onTabChange, userRole }: SidePanelProps) => {
-  const isAdmin = userRole === 'admin';
-  const isCollector = userRole === 'collector';
+const SidePanel = ({ onTabChange }: SidePanelProps) => {
   const { handleSignOut } = useAuthSession();
-
+  const { userRole, canAccessTab, hasRole } = useRoleAccess();
+  
+  console.log('SidePanel rendered with role:', userRole);
+  
   const handleLogoutClick = () => {
     handleSignOut(false);
+  };
+
+  const handleTabChange = (tab: string) => {
+    console.log('Tab change requested:', tab, 'Current role:', userRole);
+    if (canAccessTab(tab)) {
+      onTabChange(tab);
+    }
   };
 
   return (
@@ -41,29 +48,29 @@ const SidePanel = ({ onTabChange, userRole }: SidePanelProps) => {
           <Button
             variant="ghost"
             className="w-full justify-start gap-2 text-sm"
-            onClick={() => onTabChange('dashboard')}
+            onClick={() => handleTabChange('dashboard')}
           >
             <LayoutDashboard className="h-4 w-4" />
             Overview
           </Button>
 
-          {(isAdmin || isCollector) && (
+          {(hasRole('admin') || hasRole('collector')) && (
             <Button
               variant="ghost"
               className="w-full justify-start gap-2 text-sm"
-              onClick={() => onTabChange('users')}
+              onClick={() => handleTabChange('users')}
             >
               <Users className="h-4 w-4" />
               Members
             </Button>
           )}
 
-          {isAdmin && (
+          {hasRole('admin') && (
             <>
               <Button
                 variant="ghost"
                 className="w-full justify-start gap-2 text-sm"
-                onClick={() => onTabChange('financials')}
+                onClick={() => handleTabChange('financials')}
               >
                 <Wallet className="h-4 w-4" />
                 Collectors & Financials
@@ -72,7 +79,7 @@ const SidePanel = ({ onTabChange, userRole }: SidePanelProps) => {
               <Button
                 variant="ghost"
                 className="w-full justify-start gap-2 text-sm"
-                onClick={() => onTabChange('system')}
+                onClick={() => handleTabChange('system')}
               >
                 <Settings className="h-4 w-4" />
                 System
