@@ -26,7 +26,7 @@ global.localStorage = {
   key: vi.fn(),
 } as Storage;
 
-global.window.matchMedia = vi.fn().mockImplementation(query => ({
+global.window.matchMedia = vi.fn().mockImplementation((query: string) => ({
   matches: false,
   media: query,
   onchange: null,
