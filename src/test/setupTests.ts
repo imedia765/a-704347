@@ -26,7 +26,18 @@ global.localStorage = {
   key: vi.fn(),
 } as Storage;
 
-global.window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+type MediaQueryList = {
+  matches: boolean;
+  media: string;
+  onchange: null;
+  addListener: (listener: () => void) => void;
+  removeListener: (listener: () => void) => void;
+  addEventListener: (type: string, listener: () => void) => void;
+  removeEventListener: (type: string, listener: () => void) => void;
+  dispatchEvent: (event: Event) => boolean;
+};
+
+global.window.matchMedia = vi.fn().mockImplementation((query: string): MediaQueryList => ({
   matches: false,
   media: query,
   onchange: null,
@@ -57,6 +68,10 @@ export function renderWithClient(ui: ReactElement) {
         <QueryClientProvider client={testQueryClient}>{rerenderUi}</QueryClientProvider>
       ),
   };
+}
+
+export function renderWithProviders(ui: ReactElement) {
+  return renderWithClient(ui);
 }
 
 export { createTestQueryClient };
