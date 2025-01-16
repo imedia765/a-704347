@@ -1,8 +1,18 @@
 import { useRoleStore } from '@/store/roleStore';
 import { Database } from "@/integrations/supabase/types";
 
-type UserRole = Database['public']['Enums']['app_role'];
+export type UserRole = Database['public']['Enums']['app_role'];
 type Permission = keyof ReturnType<typeof useRoleStore>['permissions'];
+
+interface RolePermissions {
+  permissions: {
+    canManageUsers: boolean;
+    canCollectPayments: boolean;
+    canAccessSystem: boolean;
+    canViewAudit: boolean;
+    canManageCollectors: boolean;
+  };
+}
 
 export const useRoleAccess = () => {
   const {
@@ -11,7 +21,7 @@ export const useRoleAccess = () => {
     isLoading: roleLoading,
     error,
     permissions
-  } = useRoleStore();
+  } = useRoleStore() as ReturnType<typeof useRoleStore> & RolePermissions;
 
   const hasRole = (role: UserRole): boolean => {
     return !!userRoles?.includes(role);
