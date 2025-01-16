@@ -5,6 +5,8 @@ import { Session } from "@supabase/supabase-js";
 import { useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useRoleAccess } from "@/hooks/useRoleAccess";
+import { Loader2 } from "lucide-react";
 
 interface ProtectedRoutesProps {
   session: Session | null;
@@ -13,6 +15,7 @@ interface ProtectedRoutesProps {
 const AuthWrapper = ({ session }: { session: Session | null }) => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { roleLoading, canAccessTab } = useRoleAccess();
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, currentSession) => {
@@ -49,13 +52,28 @@ const AuthWrapper = ({ session }: { session: Session | null }) => {
     return () => window.removeEventListener('error', handleError);
   }, [toast]);
 
+  if (roleLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-dashboard-dark">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <Routes>
       <Route
         path="/"
         element={
           session ? (
-            <Index />
+            canAccessTab('dashboard') ? (
+              <Index />
+            ) : (
+              <div className="flex flex-col items-center justify-center min-h-screen bg-dashboard-dark text-white">
+                <h1 className="text-2xl font-semibold mb-4">Access Denied</h1>
+                <p className="text-dashboard-muted">You don't have permission to access this page.</p>
+              </div>
+            )
           ) : (
             <Navigate to="/login" replace />
           )
