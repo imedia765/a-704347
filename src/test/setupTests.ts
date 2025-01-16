@@ -26,7 +26,7 @@ global.localStorage = {
   key: vi.fn(),
 } as Storage;
 
-type MediaQueryList = {
+interface MediaQueryList {
   matches: boolean;
   media: string;
   onchange: null;
@@ -35,7 +35,7 @@ type MediaQueryList = {
   addEventListener: (type: string, listener: () => void) => void;
   removeEventListener: (type: string, listener: () => void) => void;
   dispatchEvent: (event: Event) => boolean;
-};
+}
 
 global.window.matchMedia = vi.fn().mockImplementation((query: string): MediaQueryList => ({
   matches: false,
