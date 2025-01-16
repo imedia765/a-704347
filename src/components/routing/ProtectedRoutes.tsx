@@ -15,13 +15,13 @@ interface ProtectedRoutesProps {
 const AuthWrapper = ({ session }: { session: Session | null }) => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { roleLoading, canAccessTab } = useRoleAccess();
+  const { roleLoading, canAccessTab, hasRole } = useRoleAccess();
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, currentSession) => {
       console.log('Auth state change in router:', event);
       
-      if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED' && !currentSession) {
+      if (event === 'SIGNED_OUT' || (event === 'TOKEN_REFRESHED' && !currentSession)) {
         console.log('User signed out or token refresh failed, redirecting to login');
         navigate('/login', { replace: true });
       } else if (event === 'SIGNED_IN' && currentSession) {

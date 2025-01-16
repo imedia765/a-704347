@@ -12,14 +12,12 @@ const dom = new JSDOM('<!doctype html><html><body></body></html>', {
   resources: 'usable'
 });
 
-// Properly type the window object
 global.window = dom.window as unknown as Window & typeof globalThis;
 global.document = dom.window.document;
 global.navigator = {
   userAgent: 'node.js',
 } as Navigator;
 
-// Mock localStorage
 global.localStorage = {
   getItem: vi.fn(),
   setItem: vi.fn(),
@@ -29,7 +27,6 @@ global.localStorage = {
   key: vi.fn(),
 } as Storage;
 
-// Mock window.matchMedia
 global.window.matchMedia = vi.fn().mockImplementation(query => ({
   matches: false,
   media: query,
@@ -41,26 +38,30 @@ global.window.matchMedia = vi.fn().mockImplementation(query => ({
   dispatchEvent: vi.fn(),
 }));
 
-// Create a wrapper with providers for testing
-const createWrapper = () => {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: {
-        retry: false,
-      },
+const createTestQueryClient = () => new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: false,
     },
-  });
-  
-  return ({ children }: { children: ReactElement }) => (
-    <QueryClientProvider client={queryClient}>
-      {children}
-    </QueryClientProvider>
+  },
+});
+
+export function renderWithClient(ui: ReactElement) {
+  const testQueryClient = createTestQueryClient();
+  const { rerender, ...result } = render(
+    <QueryClientProvider client={testQueryClient}>{ui}</QueryClientProvider>
   );
-};
+  return {
+    ...result,
+    rerender: (rerenderUi: ReactElement) =>
+      rerender(
+        <QueryClientProvider client={testQueryClient}>{rerenderUi}</QueryClientProvider>
+      ),
+  };
+}
 
-export { createWrapper };
+export { createTestQueryClient };
 
-// Cleanup after each test case
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
