@@ -1,8 +1,7 @@
-import { useRoleStore } from '@/store/roleStore';
 import { Database } from "@/integrations/supabase/types";
+import { useRoleStore } from '@/store/roleStore';
 
 export type UserRole = Database['public']['Enums']['app_role'];
-type Permission = keyof ReturnType<typeof useRoleStore>['permissions'];
 
 interface RoleState {
   userRole: UserRole | null;
@@ -53,7 +52,7 @@ export const useRoleAccess = () => {
     return false;
   };
 
-  const hasPermission = (permission: Permission): boolean => {
+  const hasPermission = (permission: keyof RoleState['permissions']): boolean => {
     return permissions[permission] || false;
   };
 
