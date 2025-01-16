@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
@@ -14,7 +14,7 @@ interface AuthWrapperProps {
 const AuthWrapper = ({ session, children }: AuthWrapperProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { roleLoading, canAccessTab, hasRole } = useRoleAccess();
+  const { roleLoading, hasRole } = useRoleAccess();
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, currentSession) => {
@@ -39,7 +39,7 @@ const AuthWrapper = ({ session, children }: AuthWrapperProps) => {
     return () => {
       subscription.unsubscribe();
     };
-  }, [navigate, hasRole]);
+  }, [navigate, hasRole, toast]);
 
   if (roleLoading) {
     return (
@@ -58,11 +58,39 @@ const AuthWrapper = ({ session, children }: AuthWrapperProps) => {
 };
 
 const ProtectedRoutes = ({ children }: { children: React.ReactNode }) => {
-  const { data: { session }, error } = supabase.auth.getSession();
+  const [session, setSession] = useState<Session | null>(null);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
-  if (error) {
-    console.error('Error getting session:', error);
-    return null;
+  useEffect(() => {
+    const initSession = async () => {
+      try {
+        const { data: { session: currentSession }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Error getting session:', error);
+          navigate('/login', { replace: true });
+          return;
+        }
+        
+        setSession(currentSession);
+      } catch (error) {
+        console.error('Error initializing session:', error);
+        navigate('/login', { replace: true });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initSession();
+  }, [navigate]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-dashboard-accent1" />
+      </div>
+    );
   }
 
   return (
