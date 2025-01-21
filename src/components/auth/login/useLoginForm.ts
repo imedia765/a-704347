@@ -20,11 +20,18 @@ export const useLoginForm = () => {
       setLoading(true);
       console.log('Starting login process for member:', memberNumber);
 
+      // First verify if member exists and is active
       const member = await verifyMember(memberNumber);
+      console.log('Member verified:', member);
+
+      // Get standardized credentials
       const { email, password } = getAuthCredentials(memberNumber);
+      console.log('Attempting sign in with email:', email);
       
-      console.log('Attempting sign in for member:', memberNumber);
+      // Clear any existing session
+      await clearAuthState();
       
+      // Attempt sign in
       const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
