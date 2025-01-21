@@ -33,7 +33,7 @@ export const CollectorRolesList = () => {
     }
 
     // After validation, we can safely cast the role
-    const validRole: UserRole = role;
+    const validRole: UserRole = role as UserRole;
 
     try {
       if (action === 'add') {
