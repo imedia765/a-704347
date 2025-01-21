@@ -22,7 +22,6 @@ export const CollectorRolesList = () => {
   const { data: collectors = [], isLoading, error } = useCollectorsData();
 
   const handleRoleChange = async (userId: string, role: string, action: 'add' | 'remove') => {
-    // Validate the role before proceeding
     if (!isValidRole(role)) {
       console.error('Invalid role type:', role);
       toast({
@@ -33,16 +32,13 @@ export const CollectorRolesList = () => {
       return;
     }
 
-    // At this point TypeScript knows role is a valid UserRole
-    const validatedRole: UserRole = role;
-
     try {
       if (action === 'add') {
         const { error } = await supabase
           .from('user_roles')
           .insert([{ 
             user_id: userId, 
-            role: validatedRole 
+            role: role // TypeScript now knows this is a valid UserRole due to isValidRole check
           }]);
         if (error) throw error;
       } else {
@@ -50,7 +46,7 @@ export const CollectorRolesList = () => {
           .from('user_roles')
           .delete()
           .eq('user_id', userId)
-          .eq('role', validatedRole);
+          .eq('role', role);
         if (error) throw error;
       }
       
@@ -63,7 +59,7 @@ export const CollectorRolesList = () => {
       
       toast({
         title: "Role updated",
-        description: `Successfully ${action}ed ${validatedRole} role`,
+        description: `Successfully ${action}ed ${role} role`,
       });
     } catch (error) {
       console.error('Role update error:', error);
