@@ -1,29 +1,11 @@
+import { useCallback, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from "@/integrations/supabase/client";
-import { useRoleStore, mapRolesToPermissions } from '@/store/roleStore';
+import { useRoleStore } from '@/store/roleStore';
+import { useToast } from "@/components/ui/use-toast";
 import { Database } from "@/integrations/supabase/types";
-import { useToast } from "@/hooks/use-toast";
 
 type UserRole = Database['public']['Enums']['app_role'];
-
-const fetchUserRolesFromSupabase = async () => {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session?.user) {
-    throw new Error('No authenticated user');
-  }
-
-  const { data, error } = await supabase
-    .from('user_roles')
-    .select('role')
-    .eq('user_id', session.user.id);
-
-  if (error) {
-    console.error('Error fetching user roles:', error);
-    throw error;
-  }
-
-  return data?.map(item => item.role as UserRole) || [];
-};
 
 export const useEnhancedRoleAccess = () => {
   const { toast } = useToast();
@@ -31,39 +13,78 @@ export const useEnhancedRoleAccess = () => {
   const setUserRole = useRoleStore((state) => state.setUserRole);
   const setIsLoading = useRoleStore((state) => state.setIsLoading);
   const setError = useRoleStore((state) => state.setError);
-  const setPermissions = useRoleStore((state) => state.setPermissions);
 
-  return useQuery({
+  const fetchRoles = useCallback(async () => {
+    console.log('Fetching user roles - start');
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session?.user) {
+      console.log('No authenticated session found');
+      setUserRoles(null);
+      setUserRole(null);
+      return null;
+    }
+
+    console.log('Fetching roles for user:', session.user.id);
+    
+    const { data: roles, error: rolesError } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', session.user.id);
+
+    if (rolesError) {
+      console.error('Error fetching roles:', rolesError);
+      throw rolesError;
+    }
+
+    const userRoles = roles?.map(r => r.role as UserRole) || ['member'];
+    console.log('Fetched roles:', userRoles);
+
+    // Force a new reference for the array to ensure React detects the change
+    const userRolesCopy = [...userRoles];
+    
+    // Set primary role (admin > collector > member)
+    const primaryRole = userRoles.includes('admin' as UserRole) 
+      ? 'admin' as UserRole 
+      : userRoles.includes('collector' as UserRole)
+        ? 'collector' as UserRole
+        : 'member' as UserRole;
+
+    setUserRoles(userRolesCopy);
+    setUserRole(primaryRole);
+    
+    return userRolesCopy;
+  }, [setUserRoles, setUserRole]);
+
+  const { data, isLoading, error } = useQuery({
     queryKey: ['userRoles'],
-    queryFn: fetchUserRolesFromSupabase,
+    queryFn: fetchRoles,
+    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+    refetchOnWindowFocus: false,
     retry: 1,
     meta: {
-      onSuccess: (data: UserRole[]) => {
-        setUserRoles(data);
-        const primaryRole = data.includes('admin') 
-          ? 'admin' 
-          : data.includes('collector')
-            ? 'collector'
-            : data.includes('member')
-              ? 'member'
-              : null;
-        
-        setUserRole(primaryRole);
-        const permissions = mapRolesToPermissions(data);
-        setPermissions(permissions);
-        setIsLoading(false);
-        setError(null);
-      },
+      errorMessage: 'Failed to load user roles',
       onError: (error: Error) => {
-        console.error('Error fetching roles:', error);
+        console.error('Role loading error:', error);
         setError(error);
-        setIsLoading(false);
+        setIsLoading(false); // Ensure loading state is cleared on error
         toast({
-          title: "Error fetching roles",
-          description: error.message,
+          title: "Error loading roles",
+          description: "There was a problem loading user roles. Please try again.",
           variant: "destructive",
         });
       }
     }
   });
+
+  // Update loading state in store
+  useEffect(() => {
+    setIsLoading(isLoading);
+  }, [isLoading, setIsLoading]);
+
+  return {
+    userRoles: data,
+    isLoading,
+    error,
+  };
 };
