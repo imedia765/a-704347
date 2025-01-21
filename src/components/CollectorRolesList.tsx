@@ -33,7 +33,8 @@ export const CollectorRolesList = () => {
       return;
     }
 
-    const validatedRole: UserRole = role as UserRole;
+    // At this point TypeScript knows role is a valid UserRole
+    const validatedRole: UserRole = role;
 
     try {
       if (action === 'add') {
