@@ -3,11 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from '@tanstack/react-query';
-import { clearAuthState, verifyMember, getAuthCredentials } from './utils/authUtils';
-
-const MAX_RETRIES = 3;
-const INITIAL_RETRY_DELAY = 1000; // 1 second
-const MAX_RETRY_DELAY = 5000; // 5 seconds
+import { clearAuthState, verifyMember, getAuthCredentials, handleSignInError } from './utils/authUtils';
+import { updateMemberWithAuthId, addMemberRole } from './utils/memberUtils';
 
 export const useLoginForm = () => {
   const [memberNumber, setMemberNumber] = useState('');
@@ -16,105 +13,90 @@ export const useLoginForm = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
-  const attemptSignIn = async (email: string, password: string, retryCount = 0): Promise<any> => {
-    try {
-      console.log(`Sign in attempt ${retryCount + 1} of ${MAX_RETRIES}`);
-      
-      const { data, error } = await supabase.auth.signInWithPassword({ 
-        email, 
-        password,
-        options: {
-          emailRedirectTo: window.location.origin
-        }
-      });
-      
-      if (error) {
-        console.error(`Sign in error on attempt ${retryCount + 1}:`, error);
-        
-        if (error.message === 'Failed to fetch' && retryCount < MAX_RETRIES - 1) {
-          const retryDelay = Math.min(
-            INITIAL_RETRY_DELAY * Math.pow(2, retryCount),
-            MAX_RETRY_DELAY
-          );
-          console.log(`Retrying sign in after ${retryDelay}ms...`);
-          await delay(retryDelay);
-          return attemptSignIn(email, password, retryCount + 1);
-        }
-        throw error;
-      }
-      
-      return { data, error: null };
-    } catch (error: any) {
-      console.error(`Sign in attempt ${retryCount + 1} failed:`, error);
-      throw error;
-    }
-  };
-
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (loading || !memberNumber.trim()) return;
     
     try {
       setLoading(true);
-      console.log('Starting login process for member:', memberNumber);
+      const isMobile = window.innerWidth <= 768;
+      console.log('Starting login process on device type:', isMobile ? 'mobile' : 'desktop');
 
-      // First verify if member exists and is active
+      // Skip clearing auth state on login attempt
       const member = await verifyMember(memberNumber);
-      console.log('Member verified:', member);
-
-      // Get standardized credentials
       const { email, password } = getAuthCredentials(memberNumber);
-      console.log('Attempting sign in with email:', email);
       
-      // Clear any existing session
-      await clearAuthState();
+      console.log('Attempting sign in with:', { email });
       
-      // Attempt sign in with retry logic
-      const { data: signInData, error: signInError } = await attemptSignIn(email, password);
+      // Try to sign in
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-      if (signInError) {
-        console.error('Sign in error:', signInError);
+      // If sign in fails due to invalid credentials, try to sign up
+      if (signInError && signInError.message.includes('Invalid login credentials')) {
+        console.log('Sign in failed, attempting signup');
         
-        if (signInError.message.includes('Invalid login credentials')) {
-          console.log('Invalid credentials, attempting signup for member:', memberNumber);
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              member_number: memberNumber,
+            }
+          }
+        });
+
+        if (signUpError) {
+          console.error('Signup error:', signUpError);
+          throw signUpError;
+        }
+
+        if (signUpData.user) {
+          await updateMemberWithAuthId(member.id, signUpData.user.id);
+          await addMemberRole(signUpData.user.id);
+
+          console.log('Member updated and role assigned, attempting final sign in');
           
-          const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+          // Final sign in attempt after successful signup
+          const { data: finalSignInData, error: finalSignInError } = await supabase.auth.signInWithPassword({
             email,
             password,
-            options: {
-              data: {
-                member_number: memberNumber,
-              },
-              emailRedirectTo: window.location.origin
-            }
           });
 
-          if (signUpError) {
-            console.error('Signup error:', signUpError);
-            throw signUpError;
+          if (finalSignInError) {
+            console.error('Final sign in error:', finalSignInError);
+            throw finalSignInError;
           }
 
-          if (!signUpData.user) {
-            throw new Error('Failed to create user account');
+          if (!finalSignInData?.session) {
+            throw new Error('Failed to establish session after signup');
           }
-
-          toast({
-            title: "Account created",
-            description: "Please check your email to verify your account",
-          });
-          return;
         }
-        
-        throw signInError;
+      } else if (signInError) {
+        await handleSignInError(signInError, email, password);
       }
 
-      if (!signInData.session) {
-        throw new Error('No session established');
+      // Clear any existing queries before proceeding
+      await queryClient.cancelQueries();
+      await queryClient.clear();
+
+      // Verify session is established
+      console.log('Verifying session...');
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        console.error('Session verification error:', sessionError);
+        throw sessionError;
       }
 
-      console.log('Login successful, redirecting to dashboard');
+      if (!session) {
+        console.error('No session established');
+        throw new Error('Failed to establish session');
+      }
+
+      console.log('Session established successfully');
       await queryClient.invalidateQueries();
 
       toast({
@@ -122,8 +104,12 @@ export const useLoginForm = () => {
         description: "Welcome back!",
       });
 
-      navigate('/', { replace: true });
-      
+      // Use replace to prevent back button issues
+      if (isMobile) {
+        window.location.href = '/';
+      } else {
+        navigate('/', { replace: true });
+      }
     } catch (error: any) {
       console.error('Login error:', error);
       
@@ -135,8 +121,8 @@ export const useLoginForm = () => {
         errorMessage = 'Invalid member number. Please try again.';
       } else if (error.message.includes('Email not confirmed')) {
         errorMessage = 'Please verify your email before logging in';
-      } else if (error.message === 'Failed to fetch') {
-        errorMessage = 'Network error. Please check your connection and try again.';
+      } else if (error.message.includes('refresh_token_not_found')) {
+        errorMessage = 'Session expired. Please try logging in again.';
       }
       
       toast({

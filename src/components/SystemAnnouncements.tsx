@@ -1,38 +1,24 @@
 import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from "@/integrations/supabase/client";
-import { AlertCircle, WifiOff } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { format } from 'date-fns';
-import { Button } from "@/components/ui/button";
 
 const SystemAnnouncements = () => {
-  const { data: announcements, refetch, error, isError } = useQuery({
+  const { data: announcements, refetch } = useQuery({
     queryKey: ['systemAnnouncements'],
     queryFn: async () => {
-      try {
-        console.log('Fetching system announcements...');
-        const { data, error } = await supabase
-          .from('system_announcements')
-          .select('*')
-          .eq('is_active', true)
-          .order('priority', { ascending: false })
-          .order('created_at', { ascending: false });
-        
-        if (error) {
-          console.error('Supabase error:', error);
-          throw error;
-        }
-
-        console.log('Announcements fetched:', data);
-        return data;
-      } catch (err) {
-        console.error('Error fetching announcements:', err);
-        throw err;
-      }
+      const { data, error } = await supabase
+        .from('system_announcements')
+        .select('*')
+        .eq('is_active', true)
+        .order('priority', { ascending: false })
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data;
     },
-    retry: 3,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
   useEffect(() => {
@@ -55,27 +41,6 @@ const SystemAnnouncements = () => {
       supabase.removeChannel(channel);
     };
   }, [refetch]);
-
-  if (isError) {
-    return (
-      <div className="space-y-4">
-        <Alert variant="destructive">
-          <WifiOff className="h-5 w-5" />
-          <AlertTitle>Connection Error</AlertTitle>
-          <AlertDescription>
-            Unable to load announcements. Please check your internet connection.
-          </AlertDescription>
-        </Alert>
-        <Button 
-          onClick={() => refetch()} 
-          variant="outline"
-          className="w-full"
-        >
-          Try Again
-        </Button>
-      </div>
-    );
-  }
 
   return (
     <div className="dashboard-card h-[600px] transition-all duration-300 hover:shadow-lg overflow-y-auto bg-dashboard-card/50 backdrop-blur-sm border border-dashboard-cardBorder">
