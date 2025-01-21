@@ -11,8 +11,7 @@ import { useRoleSync } from '@/hooks/useRoleSync';
 import { useCollectorsData } from '@/hooks/useCollectorsData';
 import { CollectorRolesHeader } from './collectors/roles/CollectorRolesHeader';
 import { CollectorRolesRow } from './collectors/roles/CollectorRolesRow';
-import { UserRole, CollectorInfo } from "@/types/collector-roles";
-import { isValidRole } from '@/types/collector-roles';
+import { UserRole, CollectorInfo, isValidRole } from "@/types/collector-roles";
 
 export const CollectorRolesList = () => {
   const { toast } = useToast();
@@ -25,6 +24,7 @@ export const CollectorRolesList = () => {
   const handleRoleChange = async (userId: string, role: string, action: 'add' | 'remove') => {
     // Validate the role before proceeding
     if (!isValidRole(role)) {
+      console.error('Invalid role type:', role);
       toast({
         title: "Invalid Role",
         description: `Invalid role type: ${role}`,
@@ -33,13 +33,15 @@ export const CollectorRolesList = () => {
       return;
     }
 
+    const validatedRole: UserRole = role as UserRole;
+
     try {
       if (action === 'add') {
         const { error } = await supabase
           .from('user_roles')
           .insert([{ 
             user_id: userId, 
-            role: role as UserRole 
+            role: validatedRole 
           }]);
         if (error) throw error;
       } else {
@@ -47,7 +49,7 @@ export const CollectorRolesList = () => {
           .from('user_roles')
           .delete()
           .eq('user_id', userId)
-          .eq('role', role as UserRole);
+          .eq('role', validatedRole);
         if (error) throw error;
       }
       
@@ -60,7 +62,7 @@ export const CollectorRolesList = () => {
       
       toast({
         title: "Role updated",
-        description: `Successfully ${action}ed ${role} role`,
+        description: `Successfully ${action}ed ${validatedRole} role`,
       });
     } catch (error) {
       console.error('Role update error:', error);
