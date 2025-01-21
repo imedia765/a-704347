@@ -3,8 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from '@tanstack/react-query';
-import { clearAuthState, verifyMember, getAuthCredentials, handleSignInError } from './utils/authUtils';
-import { updateMemberWithAuthId, addMemberRole } from './utils/memberUtils';
+import { clearAuthState, verifyMember, getAuthCredentials } from './utils/authUtils';
 
 export const useLoginForm = () => {
   const [memberNumber, setMemberNumber] = useState('');
@@ -19,84 +18,58 @@ export const useLoginForm = () => {
     
     try {
       setLoading(true);
-      const isMobile = window.innerWidth <= 768;
-      console.log('Starting login process on device type:', isMobile ? 'mobile' : 'desktop');
+      console.log('Starting login process for member:', memberNumber);
 
-      // Skip clearing auth state on login attempt
       const member = await verifyMember(memberNumber);
       const { email, password } = getAuthCredentials(memberNumber);
       
-      console.log('Attempting sign in with:', { email });
+      console.log('Attempting sign in for member:', memberNumber);
       
-      // Try to sign in
       const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      // If sign in fails due to invalid credentials, try to sign up
-      if (signInError && signInError.message.includes('Invalid login credentials')) {
-        console.log('Sign in failed, attempting signup');
+      if (signInError) {
+        console.error('Sign in error:', signInError);
         
-        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: {
-              member_number: memberNumber,
-            }
-          }
-        });
-
-        if (signUpError) {
-          console.error('Signup error:', signUpError);
-          throw signUpError;
-        }
-
-        if (signUpData.user) {
-          await updateMemberWithAuthId(member.id, signUpData.user.id);
-          await addMemberRole(signUpData.user.id);
-
-          console.log('Member updated and role assigned, attempting final sign in');
+        if (signInError.message.includes('Invalid login credentials')) {
+          console.log('Invalid credentials, attempting signup for member:', memberNumber);
           
-          // Final sign in attempt after successful signup
-          const { data: finalSignInData, error: finalSignInError } = await supabase.auth.signInWithPassword({
+          const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
             email,
             password,
+            options: {
+              data: {
+                member_number: memberNumber,
+              }
+            }
           });
 
-          if (finalSignInError) {
-            console.error('Final sign in error:', finalSignInError);
-            throw finalSignInError;
+          if (signUpError) {
+            console.error('Signup error:', signUpError);
+            throw signUpError;
           }
 
-          if (!finalSignInData?.session) {
-            throw new Error('Failed to establish session after signup');
+          if (!signUpData.user) {
+            throw new Error('Failed to create user account');
           }
+
+          toast({
+            title: "Account created",
+            description: "Please check your email to verify your account",
+          });
+          return;
         }
-      } else if (signInError) {
-        await handleSignInError(signInError, email, password);
+        
+        throw signInError;
       }
 
-      // Clear any existing queries before proceeding
-      await queryClient.cancelQueries();
-      await queryClient.clear();
-
-      // Verify session is established
-      console.log('Verifying session...');
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      
-      if (sessionError) {
-        console.error('Session verification error:', sessionError);
-        throw sessionError;
+      if (!signInData.session) {
+        throw new Error('No session established');
       }
 
-      if (!session) {
-        console.error('No session established');
-        throw new Error('Failed to establish session');
-      }
-
-      console.log('Session established successfully');
+      console.log('Login successful, redirecting to dashboard');
       await queryClient.invalidateQueries();
 
       toast({
@@ -104,12 +77,8 @@ export const useLoginForm = () => {
         description: "Welcome back!",
       });
 
-      // Use replace to prevent back button issues
-      if (isMobile) {
-        window.location.href = '/';
-      } else {
-        navigate('/', { replace: true });
-      }
+      navigate('/', { replace: true });
+      
     } catch (error: any) {
       console.error('Login error:', error);
       
@@ -121,8 +90,6 @@ export const useLoginForm = () => {
         errorMessage = 'Invalid member number. Please try again.';
       } else if (error.message.includes('Email not confirmed')) {
         errorMessage = 'Please verify your email before logging in';
-      } else if (error.message.includes('refresh_token_not_found')) {
-        errorMessage = 'Session expired. Please try logging in again.';
       }
       
       toast({
