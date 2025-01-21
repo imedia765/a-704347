@@ -6,7 +6,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { clearAuthState, verifyMember, getAuthCredentials } from './utils/authUtils';
 
 const MAX_RETRIES = 3;
-const RETRY_DELAY = 1000; // 1 second
+const INITIAL_RETRY_DELAY = 1000; // 1 second
 
 export const useLoginForm = () => {
   const [memberNumber, setMemberNumber] = useState('');
@@ -24,8 +24,9 @@ export const useLoginForm = () => {
       
       if (error) {
         if (error.message === 'Failed to fetch' && retryCount < MAX_RETRIES - 1) {
-          console.log(`Retrying sign in after ${RETRY_DELAY}ms...`);
-          await delay(RETRY_DELAY);
+          const retryDelay = INITIAL_RETRY_DELAY * Math.pow(2, retryCount); // Exponential backoff
+          console.log(`Retrying sign in after ${retryDelay}ms...`);
+          await delay(retryDelay);
           return attemptSignIn(email, password, retryCount + 1);
         }
         throw error;
