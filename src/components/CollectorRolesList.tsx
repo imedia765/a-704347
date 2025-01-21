@@ -32,13 +32,16 @@ export const CollectorRolesList = () => {
       return;
     }
 
+    // After validation, we can safely cast the role
+    const validRole: UserRole = role;
+
     try {
       if (action === 'add') {
         const { error } = await supabase
           .from('user_roles')
           .insert([{ 
             user_id: userId, 
-            role: role // TypeScript now knows this is a valid UserRole due to isValidRole check
+            role: validRole
           }]);
         if (error) throw error;
       } else {
@@ -46,7 +49,7 @@ export const CollectorRolesList = () => {
           .from('user_roles')
           .delete()
           .eq('user_id', userId)
-          .eq('role', role);
+          .eq('role', validRole);
         if (error) throw error;
       }
       
@@ -59,7 +62,7 @@ export const CollectorRolesList = () => {
       
       toast({
         title: "Role updated",
-        description: `Successfully ${action}ed ${role} role`,
+        description: `Successfully ${action}ed ${validRole} role`,
       });
     } catch (error) {
       console.error('Role update error:', error);
