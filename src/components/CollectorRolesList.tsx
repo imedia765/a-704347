@@ -6,27 +6,39 @@ import { Loader2 } from "lucide-react";
 
 type UserRole = Database['public']['Enums']['app_role'];
 
+interface RoleRecord {
+  id: string;
+  user_id: string;
+  role: UserRole;
+  created_at: string;
+}
+
 const isValidRole = (role: string): role is UserRole => {
   return ['admin', 'collector', 'member'].includes(role);
 };
 
 const CollectorRolesList = () => {
   const { toast } = useToast();
-  const [roles, setRoles] = useState<UserRole[]>([]);
+  const [roles, setRoles] = useState<RoleRecord[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchRoles = async () => {
     setLoading(true);
     try {
+      console.log('Fetching roles...');
       const { data, error } = await supabase
         .from('user_roles')
         .select('*');
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching roles:', error);
+        throw error;
+      }
 
-      setRoles(data);
+      console.log('Fetched roles:', data);
+      setRoles(data || []);
     } catch (error: any) {
-      console.error('Error fetching roles:', error);
+      console.error('Error in fetchRoles:', error);
       toast({
         title: "Error fetching roles",
         description: error.message || "Failed to fetch roles",
@@ -44,6 +56,7 @@ const CollectorRolesList = () => {
     }
     
     try {
+      console.log('Updating role for user:', userId, 'to:', newRole);
       const { error } = await supabase
         .from('user_roles')
         .update({ role: newRole })
@@ -78,12 +91,12 @@ const CollectorRolesList = () => {
     <div>
       <h2 className="text-lg font-semibold">Collector Roles</h2>
       <ul>
-        {roles.map(role => (
-          <li key={role.user_id}>
-            <span>{role.role}</span>
-            <button onClick={() => handleRoleChange(role.user_id, 'admin')}>Make Admin</button>
-            <button onClick={() => handleRoleChange(role.user_id, 'collector')}>Make Collector</button>
-            <button onClick={() => handleRoleChange(role.user_id, 'member')}>Make Member</button>
+        {roles.map(roleRecord => (
+          <li key={roleRecord.id}>
+            <span>{roleRecord.role}</span>
+            <button onClick={() => handleRoleChange(roleRecord.user_id, 'admin')}>Make Admin</button>
+            <button onClick={() => handleRoleChange(roleRecord.user_id, 'collector')}>Make Collector</button>
+            <button onClick={() => handleRoleChange(roleRecord.user_id, 'member')}>Make Member</button>
           </li>
         ))}
       </ul>

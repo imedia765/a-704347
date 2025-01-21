@@ -7,6 +7,7 @@ import { clearAuthState, verifyMember, getAuthCredentials } from './utils/authUt
 
 const MAX_RETRIES = 3;
 const INITIAL_RETRY_DELAY = 1000; // 1 second
+const MAX_RETRY_DELAY = 5000; // 5 seconds
 
 export const useLoginForm = () => {
   const [memberNumber, setMemberNumber] = useState('');
@@ -20,11 +21,23 @@ export const useLoginForm = () => {
   const attemptSignIn = async (email: string, password: string, retryCount = 0): Promise<any> => {
     try {
       console.log(`Sign in attempt ${retryCount + 1} of ${MAX_RETRIES}`);
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      
+      const { data, error } = await supabase.auth.signInWithPassword({ 
+        email, 
+        password,
+        options: {
+          redirectTo: window.location.origin
+        }
+      });
       
       if (error) {
+        console.error(`Sign in error on attempt ${retryCount + 1}:`, error);
+        
         if (error.message === 'Failed to fetch' && retryCount < MAX_RETRIES - 1) {
-          const retryDelay = INITIAL_RETRY_DELAY * Math.pow(2, retryCount); // Exponential backoff
+          const retryDelay = Math.min(
+            INITIAL_RETRY_DELAY * Math.pow(2, retryCount),
+            MAX_RETRY_DELAY
+          );
           console.log(`Retrying sign in after ${retryDelay}ms...`);
           await delay(retryDelay);
           return attemptSignIn(email, password, retryCount + 1);
@@ -73,7 +86,8 @@ export const useLoginForm = () => {
             options: {
               data: {
                 member_number: memberNumber,
-              }
+              },
+              redirectTo: window.location.origin
             }
           });
 
