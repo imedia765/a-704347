@@ -32,7 +32,7 @@ export const CollectorRolesList = () => {
       return;
     }
 
-    // After validation, we can safely cast the role
+    // After validation and type guard, TypeScript knows role is UserRole
     const validRole: UserRole = role as UserRole;
 
     try {
