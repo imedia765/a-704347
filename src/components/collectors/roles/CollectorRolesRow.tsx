@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { UserRole, CollectorInfo } from "@/types/collector-roles";
 import { RoleAssignment } from "./RoleAssignment";
 import { SyncStatusIndicator } from "./SyncStatusIndicator";
+import { RoleVerificationPanel } from "./RoleVerificationPanel";
 
 interface CollectorRolesRowProps {
   collector: CollectorInfo;
@@ -42,95 +43,87 @@ export const CollectorRolesRow = ({
   };
 
   return (
-    <TableRow className="border-dashboard-cardBorder hover:bg-dashboard-card/5">
-      <TableCell className="font-medium text-dashboard-text">
-        {collector.full_name || 'N/A'}
-      </TableCell>
-      <TableCell>
-        <Badge variant="outline" className="bg-dashboard-accent1/10 text-dashboard-accent1">
-          {collector.member_number || 'N/A'}
-        </Badge>
-      </TableCell>
-      <TableCell>
-        <div className="space-y-1">
-          <div className="text-dashboard-text">{collector.email || 'N/A'}</div>
-          <div className="text-dashboard-muted">{collector.phone || 'N/A'}</div>
-        </div>
-      </TableCell>
-      <TableCell>
-        <div className="space-y-2">
+    <>
+      <TableRow className="border-dashboard-cardBorder hover:bg-dashboard-card/5">
+        <TableCell className="font-medium text-dashboard-text">
+          {collector.full_name || 'N/A'}
+        </TableCell>
+        <TableCell>
+          <Badge variant="outline" className="bg-dashboard-accent1/10 text-dashboard-accent1">
+            {collector.member_number || 'N/A'}
+          </Badge>
+        </TableCell>
+        <TableCell>
           <div className="space-y-1">
-            {collector.roles.map((role, idx) => (
-              <Badge
-                key={`${role}-${idx}`}
+            <div className="text-dashboard-text">{collector.email || 'N/A'}</div>
+            <div className="text-dashboard-muted">{collector.phone || 'N/A'}</div>
+          </div>
+        </TableCell>
+        <TableCell>
+          <div className="space-y-2">
+            <div className="space-y-1">
+              {collector.roles.map((role, idx) => (
+                <Badge
+                  key={`${role}-${idx}`}
+                  variant="outline"
+                  className={`mr-1 ${getRoleBadgeColor(role)}`}
+                >
+                  {role}
+                </Badge>
+              ))}
+            </div>
+            <RoleAssignment
+              userId={collector.auth_user_id}
+              currentRoles={collector.roles}
+              onRoleChange={handleRoleChange}
+            />
+          </div>
+        </TableCell>
+        <TableCell>
+          <RoleVerificationPanel collector={collector} />
+        </TableCell>
+        <TableCell>
+          <div className="space-y-1">
+            {collector.enhanced_roles?.map((role, index) => (
+              <Badge 
+                key={`${role.role_name}-${index}`}
                 variant="outline"
-                className={`mr-1 ${getRoleBadgeColor(role)}`}
+                className={`${role.is_active ? 'bg-dashboard-accent3/10 text-dashboard-accent3' : 'bg-dashboard-muted/10 text-dashboard-muted'} border-current`}
               >
-                {role}
+                {role.role_name}
               </Badge>
             ))}
           </div>
-          <RoleAssignment
-            userId={collector.auth_user_id}
-            currentRoles={collector.roles}
-            onRoleChange={handleRoleChange}
-          />
-        </div>
-      </TableCell>
-      <TableCell>
-        <div className="space-y-1">
-          {collector.role_details?.map((detail, index) => (
-            <Badge 
-              key={`${detail.role}-${index}`}
-              variant="outline"
-              className={`mr-1 ${getRoleBadgeColor(detail.role)}`}
-            >
-              {detail.role}
-            </Badge>
-          ))}
-        </div>
-      </TableCell>
-      <TableCell>
-        <div className="space-y-1">
-          {collector.enhanced_roles?.map((role, index) => (
-            <Badge 
-              key={`${role.role_name}-${index}`}
-              variant="outline"
-              className={`${role.is_active ? 'bg-dashboard-accent3/10 text-dashboard-accent3' : 'bg-dashboard-muted/10 text-dashboard-muted'} border-current`}
-            >
-              {role.role_name}
-            </Badge>
-          ))}
-        </div>
-      </TableCell>
-      <TableCell>
-        <SyncStatusIndicator status={collector.sync_status} />
-      </TableCell>
-      <TableCell>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => collector.auth_user_id && onSync(collector.auth_user_id)}
-          disabled={!collector.auth_user_id}
-          className="text-dashboard-accent1 hover:bg-dashboard-accent1/10"
-        >
-          <Shield className="h-4 w-4 mr-2" />
-          Sync Roles
-        </Button>
-      </TableCell>
-      <TableCell>
-        <div className="space-y-1">
-          {permissions && Object.entries(permissions).map(([key, value]) => (
-            <Badge 
-              key={key}
-              variant="outline"
-              className={`${value ? 'bg-dashboard-accent3/10 text-dashboard-accent3' : 'bg-dashboard-muted/10 text-dashboard-muted'} border-current mr-1`}
-            >
-              {key.replace(/([A-Z])/g, ' $1').trim()}
-            </Badge>
-          ))}
-        </div>
-      </TableCell>
-    </TableRow>
+        </TableCell>
+        <TableCell>
+          <SyncStatusIndicator status={collector.sync_status} />
+        </TableCell>
+        <TableCell>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => collector.auth_user_id && onSync(collector.auth_user_id)}
+            disabled={!collector.auth_user_id}
+            className="text-dashboard-accent1 hover:bg-dashboard-accent1/10"
+          >
+            <Shield className="h-4 w-4 mr-2" />
+            Sync Roles
+          </Button>
+        </TableCell>
+        <TableCell>
+          <div className="space-y-1">
+            {permissions && Object.entries(permissions).map(([key, value]) => (
+              <Badge 
+                key={key}
+                variant="outline"
+                className={`${value ? 'bg-dashboard-accent3/10 text-dashboard-accent3' : 'bg-dashboard-muted/10 text-dashboard-muted'} border-current mr-1`}
+              >
+                {key.replace(/([A-Z])/g, ' $1').trim()}
+              </Badge>
+            ))}
+          </div>
+        </TableCell>
+      </TableRow>
+    </>
   );
 };
