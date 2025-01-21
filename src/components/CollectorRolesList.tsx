@@ -12,6 +12,7 @@ import { useCollectorsData } from '@/hooks/useCollectorsData';
 import { CollectorRolesHeader } from './collectors/roles/CollectorRolesHeader';
 import { CollectorRolesRow } from './collectors/roles/CollectorRolesRow';
 import { UserRole, CollectorInfo } from "@/types/collector-roles";
+import { isValidRole } from '@/types/collector-roles';
 
 export const CollectorRolesList = () => {
   const { toast } = useToast();
@@ -21,7 +22,17 @@ export const CollectorRolesList = () => {
   const { syncRoles } = useRoleSync();
   const { data: collectors = [], isLoading, error } = useCollectorsData();
 
-  const handleRoleChange = async (userId: string, role: UserRole, action: 'add' | 'remove') => {
+  const handleRoleChange = async (userId: string, role: string, action: 'add' | 'remove') => {
+    // Validate the role before proceeding
+    if (!isValidRole(role)) {
+      toast({
+        title: "Invalid Role",
+        description: `Invalid role type: ${role}`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       if (action === 'add') {
         const { error } = await supabase
