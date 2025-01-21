@@ -67,7 +67,7 @@ export const useRoleAccess = () => {
           console.error('Error fetching roles:', rolesError);
           toast({
             title: "Error fetching roles",
-            description: "There was a problem loading your access permissions.",
+            description: "There was a problem loading your access permissions. Please refresh the page.",
             variant: "destructive",
           });
           throw rolesError;
@@ -94,7 +94,8 @@ export const useRoleAccess = () => {
         setIsLoading(false);
       }
     },
-    retry: 1,
+    retry: 3, // Retry failed requests 3 times
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
     staleTime: 1000 * 60 * 5, // Cache for 5 minutes
     refetchOnMount: true,
     refetchOnWindowFocus: true,
