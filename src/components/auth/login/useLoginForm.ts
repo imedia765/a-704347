@@ -26,7 +26,7 @@ export const useLoginForm = () => {
         email, 
         password,
         options: {
-          redirectTo: window.location.origin
+          emailRedirectTo: window.location.origin
         }
       });
       
@@ -87,7 +87,7 @@ export const useLoginForm = () => {
               data: {
                 member_number: memberNumber,
               },
-              redirectTo: window.location.origin
+              emailRedirectTo: window.location.origin
             }
           });
 
