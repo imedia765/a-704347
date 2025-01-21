@@ -5,12 +5,38 @@ import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from '@tanstack/react-query';
 import { clearAuthState, verifyMember, getAuthCredentials } from './utils/authUtils';
 
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 1000; // 1 second
+
 export const useLoginForm = () => {
   const [memberNumber, setMemberNumber] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+  const attemptSignIn = async (email: string, password: string, retryCount = 0): Promise<any> => {
+    try {
+      console.log(`Sign in attempt ${retryCount + 1} of ${MAX_RETRIES}`);
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      
+      if (error) {
+        if (error.message === 'Failed to fetch' && retryCount < MAX_RETRIES - 1) {
+          console.log(`Retrying sign in after ${RETRY_DELAY}ms...`);
+          await delay(RETRY_DELAY);
+          return attemptSignIn(email, password, retryCount + 1);
+        }
+        throw error;
+      }
+      
+      return { data, error: null };
+    } catch (error: any) {
+      console.error(`Sign in attempt ${retryCount + 1} failed:`, error);
+      throw error;
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,11 +57,8 @@ export const useLoginForm = () => {
       // Clear any existing session
       await clearAuthState();
       
-      // Attempt sign in
-      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      // Attempt sign in with retry logic
+      const { data: signInData, error: signInError } = await attemptSignIn(email, password);
 
       if (signInError) {
         console.error('Sign in error:', signInError);
@@ -97,6 +120,8 @@ export const useLoginForm = () => {
         errorMessage = 'Invalid member number. Please try again.';
       } else if (error.message.includes('Email not confirmed')) {
         errorMessage = 'Please verify your email before logging in';
+      } else if (error.message === 'Failed to fetch') {
+        errorMessage = 'Network error. Please check your connection and try again.';
       }
       
       toast({
