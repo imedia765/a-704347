@@ -51,8 +51,12 @@ export const CollectorRolesList = () => {
         if (error) throw error;
       }
       
-      await queryClient.invalidateQueries({ queryKey: ['collectors-roles'] });
-      await queryClient.invalidateQueries({ queryKey: ['userRoles'] });
+      // Invalidate multiple related queries
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['collectors-roles'] }),
+        queryClient.invalidateQueries({ queryKey: ['userRoles'] }),
+        queryClient.invalidateQueries({ queryKey: ['roleSyncStatus'] })
+      ]);
       
       toast({
         title: "Role updated",
@@ -70,13 +74,25 @@ export const CollectorRolesList = () => {
 
   const handleSync = async (userId: string) => {
     try {
+      console.log('Starting sync for user:', userId);
       await syncRoles([userId]);
-      await queryClient.invalidateQueries({ queryKey: ['collectors-roles'] });
+      
+      // Invalidate multiple related queries
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['collectors-roles'] }),
+        queryClient.invalidateQueries({ queryKey: ['userRoles'] }),
+        queryClient.invalidateQueries({ queryKey: ['roleSyncStatus'] }),
+        queryClient.invalidateQueries({ queryKey: ['collectors'] })
+      ]);
+      
       toast({
-        title: "Sync initiated",
-        description: "Role synchronization process has started",
+        title: "Sync completed",
+        description: "Role synchronization process has completed",
       });
+      
+      console.log('Sync completed for user:', userId);
     } catch (error) {
+      console.error('Sync error:', error);
       toast({
         title: "Sync failed",
         description: error instanceof Error ? error.message : "An error occurred during sync",
